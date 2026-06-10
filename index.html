@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>记账</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="app">
+    <!-- Tab 导航 -->
+    <nav id="tab-bar">
+      <button class="tab active" data-tab="record">📒 记账</button>
+      <button class="tab" data-tab="history">📊 历史</button>
+    </nav>
+
+    <!-- 记账 Tab -->
+    <main id="tab-record" class="tab-content active">
+      <div id="today-header">
+        <span id="today-date"></span>
+        <span id="today-total">¥0.00</span>
+      </div>
+      <div id="today-list"></div>
+      <div id="mic-area">
+        <button id="mic-btn">🎤</button>
+        <p id="mic-hint">按住说话，松手识别</p>
+      </div>
+      <button id="manual-btn">📝 手动记一笔</button>
+    </main>
+
+    <!-- 历史 Tab -->
+    <main id="tab-history" class="tab-content">
+      <div id="history-header">
+        <button id="prev-month">◀</button>
+        <span id="history-month">2026年6月</span>
+        <button id="next-month">▶</button>
+      </div>
+      <div id="history-total">本月支出 ¥0.00</div>
+      <div id="category-chart"></div>
+      <div id="history-list"></div>
+    </main>
+
+    <!-- 语音确认弹窗 -->
+    <div id="voice-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>识别结果</h3>
+        <div id="voice-result"></div>
+        <div class="modal-actions">
+          <button id="voice-cancel">取消</button>
+          <button id="voice-confirm">✓ 确认记账</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 手动记账弹窗 -->
+    <div id="manual-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>手动记账</h3>
+        <input type="number" id="manual-amount" placeholder="金额" inputmode="decimal" step="0.01">
+        <select id="manual-category">
+          <option value="餐饮">🍜 餐饮</option>
+          <option value="交通">🚇 交通</option>
+          <option value="购物">🛒 购物</option>
+          <option value="娱乐">🎮 娱乐</option>
+          <option value="居住">🏠 居住</option>
+          <option value="医疗">💊 医疗</option>
+        </select>
+        <input type="text" id="manual-desc" placeholder="备注（选填）">
+        <div class="modal-actions">
+          <button id="manual-cancel">取消</button>
+          <button id="manual-confirm">✓ 确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
