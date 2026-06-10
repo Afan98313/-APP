@@ -1,7 +1,7 @@
 {
   "name": "极简记账",
   "short_name": "记账",
-  "start_url": "/记账APP/index.html",
+  "start_url": "/-APP/index.html",
   "display": "standalone",
   "background_color": "#f5f5f7",
   "theme_color": "#4CAF50",

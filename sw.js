@@ -1,13 +1,13 @@
 const CACHE_NAME = 'expense-tracker-v1';
 const ASSETS = [
-  '/记账APP/',
-  '/记账APP/index.html',
-  '/记账APP/css/app.css',
-  '/记账APP/js/db.js',
-  '/记账APP/js/parser.js',
-  '/记账APP/js/voice.js',
-  '/记账APP/js/ui.js',
-  '/记账APP/js/app.js'
+  '/-APP/',
+  '/-APP/index.html',
+  '/-APP/css/app.css',
+  '/-APP/js/db.js',
+  '/-APP/js/parser.js',
+  '/-APP/js/voice.js',
+  '/-APP/js/ui.js',
+  '/-APP/js/app.js'
 ];
 
 self.addEventListener('install', (e) => {
