@@ -12,33 +12,73 @@ async function init() {
   // Voice input
   const micBtn = document.getElementById('mic-btn');
   const micHint = document.getElementById('mic-hint');
-
-  // Try to init microphone (async)
   let voiceReady = false;
-  VoiceRecognition.init().then(ok => {
-    voiceReady = ok;
-    if (!ok) {
-      micBtn.style.opacity = '0.4';
-      micHint.textContent = '麦克风不可用，请用 Safari 打开并允许权限';
-    }
-  });
+  let voiceIniting = false;
 
-  micBtn.addEventListener('pointerdown', async () => {
-    if (!voiceReady || VoiceRecognition.isRecording) return;
+  async function ensureVoiceReady() {
+    if (voiceReady) return true;
+    if (voiceIniting) return false;
+    voiceIniting = true;
+    micHint.textContent = '正在请求麦克风权限...';
+    try {
+      voiceReady = await VoiceRecognition.init();
+      if (!voiceReady) {
+        micHint.textContent = '请在 Safari 设置中允许麦克风权限';
+        micBtn.style.opacity = '0.4';
+      } else {
+        micHint.textContent = '按住说话，松手识别';
+      }
+    } catch (e) {
+      micHint.textContent = '麦克风不可用：' + e.message;
+    }
+    voiceIniting = false;
+    return voiceReady;
+  }
+
+  // Use touchstart/touchend for better iOS Safari support
+  micBtn.addEventListener('touchstart', async (e) => {
+    e.preventDefault();
+    if (VoiceRecognition.isRecording) return;
+    if (!(await ensureVoiceReady())) return;
     micBtn.classList.add('listening');
     micHint.textContent = '正在听...';
     try {
       await VoiceRecognition.start();
     } catch (err) {
-      micHint.textContent = '录音启动失败';
+      micHint.textContent = '录音启动失败：' + err.message;
+      micBtn.classList.remove('listening');
     }
   });
 
-  micBtn.addEventListener('pointerup', async () => {
+  micBtn.addEventListener('touchend', async (e) => {
+    e.preventDefault();
+    await handleMicRelease();
+  });
+
+  // Also support mouse for desktop testing
+  micBtn.addEventListener('mousedown', async (e) => {
+    if (VoiceRecognition.isRecording) return;
+    if (!(await ensureVoiceReady())) return;
+    micBtn.classList.add('listening');
+    micHint.textContent = '正在听...';
+    try {
+      await VoiceRecognition.start();
+    } catch (err) {
+      micHint.textContent = '录音启动失败：' + err.message;
+      micBtn.classList.remove('listening');
+    }
+  });
+
+  micBtn.addEventListener('mouseup', async (e) => {
+    await handleMicRelease();
+  });
+
+  async function handleMicRelease() {
     if (!VoiceRecognition.isRecording) return;
     micHint.textContent = '识别中...';
     try {
       const audioBlob = await VoiceRecognition.stop();
+      micHint.textContent = '正在识别语音...';
       const text = await VoiceRecognition.transcribe(audioBlob);
       micHint.textContent = text ? `"${text}"` : '未识别到语音';
       const items = parseExpenseText(text);
@@ -66,11 +106,11 @@ async function init() {
         micHint.textContent = '按住说话，松手识别';
       });
     } catch (err) {
-      micHint.textContent = '识别失败，请重试';
-      setTimeout(() => { micHint.textContent = '按住说话，松手识别'; }, 2000);
+      micHint.textContent = '识别失败：' + err.message;
+      setTimeout(() => { micHint.textContent = '按住说话，松手识别'; }, 2500);
     }
     micBtn.classList.remove('listening');
-  });
+  }
 
   // Manual input
   document.getElementById('manual-btn').addEventListener('click', () => {
