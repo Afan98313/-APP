@@ -12,24 +12,40 @@ async function init() {
   // Voice input
   const micBtn = document.getElementById('mic-btn');
   const micHint = document.getElementById('mic-hint');
-  const voiceSupported = VoiceRecognition.init();
 
-  if (!voiceSupported) {
-    micBtn.style.opacity = '0.4';
-    micHint.textContent = '浏览器不支持语音（请用 Safari）';
-  }
+  // Try to init microphone (async)
+  let voiceReady = false;
+  VoiceRecognition.init().then(ok => {
+    voiceReady = ok;
+    if (!ok) {
+      micBtn.style.opacity = '0.4';
+      micHint.textContent = '麦克风不可用，请用 Safari 打开并允许权限';
+    }
+  });
 
   micBtn.addEventListener('pointerdown', async () => {
-    if (!voiceSupported) return;
+    if (!voiceReady || VoiceRecognition.isRecording) return;
     micBtn.classList.add('listening');
     micHint.textContent = '正在听...';
     try {
-      const text = await VoiceRecognition.start();
-      micHint.textContent = `"${text}"`;
+      await VoiceRecognition.start();
+    } catch (err) {
+      micHint.textContent = '录音启动失败';
+    }
+  });
+
+  micBtn.addEventListener('pointerup', async () => {
+    if (!VoiceRecognition.isRecording) return;
+    micHint.textContent = '识别中...';
+    try {
+      const audioBlob = await VoiceRecognition.stop();
+      const text = await VoiceRecognition.transcribe(audioBlob);
+      micHint.textContent = text ? `"${text}"` : '未识别到语音';
       const items = parseExpenseText(text);
       if (items.length === 0) {
         micHint.textContent = '未识别到金额，请重试';
         setTimeout(() => { micHint.textContent = '按住说话，松手识别'; }, 2000);
+        micBtn.classList.remove('listening');
         return;
       }
       showVoiceResult(items, async (confirmed) => {

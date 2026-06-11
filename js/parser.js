@@ -36,12 +36,87 @@ function cleanDescription(raw) {
   return desc || raw.trim();
 }
 
+// Chinese numeral to Arabic number
+const CHINESE_NUMS = { '零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+const CHINESE_UNITS = { '十': 10, '百': 100, '千': 1000, '万': 10000 };
+
+function chineseToNumber(chinese) {
+  let num = 0;
+  let current = 0;
+  for (const ch of chinese) {
+    if (ch in CHINESE_NUMS) {
+      current = CHINESE_NUMS[ch];
+    } else if (ch in CHINESE_UNITS) {
+      const unit = CHINESE_UNITS[ch];
+      current = current === 0 ? unit : current * unit;
+      if (unit >= 10) {
+        num += current;
+        current = 0;
+      }
+    }
+  }
+  num += current;
+  return num || parseFloat(chinese);
+}
+
+function parseChinesePrice(text) {
+  // Pattern: "八点八元" "八块八" "八元五" "八块五毛" "十二块五"
+  const patterns = [
+    // 八点八元/块, 八点八
+    /([零一二两三四五六七八九十]+)[点\.]([零一二两三四五六七八九]+)\s*[元块]?/g,
+    // 八块八, 八元八, 八块八毛
+    /([零一二两三四五六七八九十]+)\s*[元块]\s*([零一二两三四五六七八九]+)\s*[毛角]?/g,
+    // 八元五角, 八块五毛
+    /([零一二两三四五六七八九十]+)\s*[元块]\s*([零一二两三四五六七八九]+)\s*[角毛]/g,
+    // 十五元, 二十块
+    /([零一二两三四五六七八九十百千万]+)\s*[元块](?![零一二两三四五六七八九十角毛])\s*/g,
+  ];
+
+  const results = [];
+  let remaining = text;
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(remaining)) !== null) {
+      let amount;
+      if (match[2] !== undefined && match[1].includes('点') === false) {
+        // Pattern: integer + unit + fractional part
+        const integer = chineseToNumber(match[1]);
+        const fractional = chineseToNumber(match[2]);
+        if (match[2].length === 1) {
+          amount = integer + fractional * 0.1; // "八块五" → 8.5
+        } else {
+          amount = parseFloat(`${integer}.${Math.round(fractional)}`) || (integer + fractional * 0.1);
+        }
+      } else {
+        // Simple number before 元/块, or 点 pattern
+        amount = chineseToNumber(match[1]);
+      }
+      results.push({ match: match[0], amount });
+    }
+  }
+  return results;
+}
+
+function replaceChinesePrices(text) {
+  // Replace Chinese price expressions with Arabic equivalents
+  const prices = parseChinesePrice(text);
+  let result = text;
+  for (const p of prices) {
+    result = result.replace(p.match, `${p.amount}元`);
+  }
+  return result;
+}
+
 function parseExpenseText(text) {
+  // First, convert Chinese price expressions to Arabic
+  const normalized = replaceChinesePrices(text);
+
   // Match pattern: description + number + 元/块
-  const regex = /([^\d]+?)(\d+\.?\d*)\s*[元块]/g;
+  const regex = /([^\d,，。.\s]+?)(\d+\.?\d*)\s*[元块]/g;
   const results = [];
   let match;
-  while ((match = regex.exec(text)) !== null) {
+  while ((match = regex.exec(normalized)) !== null) {
     const desc = cleanDescription(match[1]);
     const amount = parseFloat(match[2]);
     if (amount <= 0 || isNaN(amount)) continue;
